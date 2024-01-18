@@ -9,7 +9,7 @@ def main():
     '''
     app = QApplication(sys.argv)
     gui = TrigMainWindow()
-    gui.show()
+    gui.show()    
     sys.exit(app.exec_()) # for clean exit
 
 main()

@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from triangle import Triangle
+from trig import TrigLaw
 
 class TrigMainWindow(QMainWindow):
     '''
@@ -83,10 +84,14 @@ class TrigMainWindow(QMainWindow):
     def initToolBar(self):
         '''
         Creates a Tool Bar at the top of the window.
-        It contains a Reset button to reset the input fields.
+        It contains a Reset button to reset the input fields and a Calculate button to draw the triangle.
         '''
         toolBar = QToolBar('Tool Bar', self)
         self.addToolBar(Qt.TopToolBarArea, toolBar)  
+        
+        calculateAction = QAction('Calculate', self)
+        calculateAction.triggered.connect(self.calculateAndUpdateDisplay)
+        toolBar.addAction(calculateAction)
         
         resetAction = QAction('Reset', self)
         resetAction.triggered.connect(self.resetInput)
@@ -160,25 +165,38 @@ class TrigMainWindow(QMainWindow):
         
     def initRadioBtns(self):
         '''
-        Creates two Radio Buttons to select the operations to be performed on the triangle.
+        Creates five Radio Buttons to select the operations to be performed on the triangle.
         These radio buttons are added to the optionsLayout.
         '''
-        self.radioBtnSohCahToa = QRadioButton('SOH/CAH/TOA')
-        self.radioBtnSineCosine = QRadioButton('Sine/Cosine Law')
-        
-        self.radioBtnSohCahToa.setChecked(True)
+        self.radioBtnSOH = QRadioButton('SOH')
+        self.radioBtnCAH = QRadioButton('CAH')
+        self.radioBtnTOA = QRadioButton('TOA')
+        self.radioBtnSineLaw = QRadioButton('Sine Law')
+        self.radioBtnCosineLaw = QRadioButton('Cosine Law')
+    
+        self.radioBtnSOH.setChecked(True)  # Set default selection
         self.onSohCahToaClicked(True)
-        
-        self.optionsLayout.addWidget(self.radioBtnSohCahToa)
-        self.optionsLayout.addWidget(self.radioBtnSineCosine)
-        
-        self.radioBtnSohCahToa.toggled.connect(self.onSohCahToaClicked)
-        self.radioBtnSineCosine.toggled.connect(self.onSineCosineLawClicked) 
 
+        self.optionsLayout.addWidget(self.radioBtnSOH)
+        self.optionsLayout.addWidget(self.radioBtnCAH)
+        self.optionsLayout.addWidget(self.radioBtnTOA)
+        self.optionsLayout.addWidget(self.radioBtnSineLaw)
+        self.optionsLayout.addWidget(self.radioBtnCosineLaw)
+    
+        self.radioBtnSOH.toggled.connect(self.onSohCahToaClicked)
+        self.radioBtnCAH.toggled.connect(self.onSohCahToaClicked)
+        self.radioBtnTOA.toggled.connect(self.onSohCahToaClicked)
+        self.radioBtnSineLaw.toggled.connect(self.onSineCosineLawClicked)
+        self.radioBtnCosineLaw.toggled.connect(self.onSineCosineLawClicked)
+    
     def drawTriangle(self, triangle):
         '''
         Takes a triangle object as an argument and draws it on the QGraphicsView object.
-        '''       
+        '''      
+        if self.triangle.errorMessage:
+            self.statusBar.showMessage(self.triangle.errorMessage, 3000)
+            return 
+        
         triangle.vertices = triangle.calculateVertices()
         polygon = QPolygonF(triangle.vertices)
         triangleItem = QGraphicsPolygonItem(polygon)
@@ -285,26 +303,16 @@ class TrigMainWindow(QMainWindow):
         '''
         Called when the SOH/CAH/TOA radio button is clicked.
         '''
-        if checked:
-            self.triangle = Triangle(a = 375, b = 225, c = 300) # initialize a tringle with these standard dimensions
-            self.drawTriangle(self.triangle)
-
-            self.angleIBs[0].setText('90.00') # make sure A is 90 degrees in SOH/CAH/TOA
-
-            self.calculateAndUpdateDisplay() # display default triangle
+        if checked:     
+            self.angleIBs[0].setText('90.00') # make sure A is 90 degrees in SOH/CAH/TOA            
             self.resetInput() # reset input fields
             
     def onSineCosineLawClicked(self, checked):
         '''
-        Called when the Sine/Cosine Law radio button is clicked.
-        '''
-        if checked:
-            self.triangle = Triangle(a=300, b =300, c =300)
-            self.drawTriangle(self.triangle)
-
-            self.angleIBs[0].setText('0.00') # set A back to 0 degrees in sine/cosine law
-
-            self.calculateAndUpdateDisplay()
+        Called when the Sine/Cosine Law radio button is clicked. 
+        '''        
+        if checked:    
+            self.angleIBs[0].setText('0.00') # set A back to 0 degrees in sine/cosine law            
             self.resetInput()                 
         
     def updateInputFieldStatus(self):
@@ -316,11 +324,10 @@ class TrigMainWindow(QMainWindow):
         for field in self.sideIBs + self.angleIBs:
             if count >= 3 and (float(field.text()) == 0): # unique triangle              
                 field.setDisabled(True)
-                self.calculateAndUpdateDisplay(True) # display the triangle if it's unique
             else:
                 field.setDisabled(False)
                 
-        if self.radioBtnSohCahToa.isChecked():
+        if self.radioBtnSOH.isChecked() or self.radioBtnCAH.isChecked() or self.radioBtnTOA.isChecked():
             self.angleIBs[0].setDisabled(True) # A is always 90 degrees in SOH/CAH/TOA and stays disabled to prevent user from changing it
             
     def calculateAndUpdateDisplay(self, display = False):
@@ -335,12 +342,28 @@ class TrigMainWindow(QMainWindow):
             A = float(self.angleIBs[0].text()) if self.angleIBs[0].text() and float(self.angleIBs[0].text()) != 0 else None
             B = float(self.angleIBs[1].text()) if self.angleIBs[1].text() and float(self.angleIBs[1].text()) != 0 else None
             C = float(self.angleIBs[2].text()) if self.angleIBs[2].text() and float(self.angleIBs[2].text()) != 0 else None
-
-            self.updateInfoBox(a = a, b = b, c = c, A = A, B = B, C = C) # add the procedures to the info box
             
-            self.triangle = Triangle(a, b, c, A, B, C) 
+            lawChosen = TrigLaw.SOH 
+            if self.radioBtnSOH.isChecked():
+                lawChosen = TrigLaw.SOH
+            elif self.radioBtnCAH.isChecked():
+                lawChosen = TrigLaw.CAH
+            elif self.radioBtnTOA.isChecked():
+                lawChosen = TrigLaw.TOA
+            elif self.radioBtnSineLaw.isChecked():
+                lawChosen = TrigLaw.SINE_LAW
+            elif self.radioBtnCosineLaw.isChecked():
+                lawChosen = TrigLaw.COSINE_LAW   
+                
+            self.triangle = Triangle(a, b, c, A, B, C, lawChosen)
+            
+            if self.triangle.errorMessage: # catch errors, dsplay them and halt execution
+                self.statusBar.showMessage(self.triangle.errorMessage, 3000) 
+                return
+            
+            self.updateInfoBox(a = a, b = b, c = c, A = A, B = B, C = C) # add the procedures to the info box
             self.drawTriangle(self.triangle)   
-        except ValueError: # if the input is invalid/not a feasible triangle/not aunique triangle
+        except ValueError: # I did do a lot of validation just in case haha
             if (display):
                 self.statusBar.showMessage('Invalid input, not a feasible/unique triangle!', 3000) 
             
@@ -359,10 +382,8 @@ class TrigMainWindow(QMainWindow):
             if value < 0.0 or value > maxLength:
                 sender.setText(str(maxLength)) # contrain to maxLength if it's too large or negative
                 self.statusBar.showMessage(f'Side length should be between 0 and {maxLength} (to be displayed in the area)', 3000)
-                self.calculateAndUpdateDisplay() # display the triangle if it's unique
         except ValueError:
             sender.setText('0')  # 0 if it's not a valid number
-            self.statusBar.showMessage('Waduhek :/', 3000)
 
     def validateAngle(self):
         '''
@@ -377,10 +398,8 @@ class TrigMainWindow(QMainWindow):
             if value < 0.0 or value > 180.0:
                 sender.setText('180')  # 180 if it's too large or negative
                 self.statusBar.showMessage('Angle should be between 0 and 180 (obviously)', 3000)
-                self.calculateAndUpdateDisplay()
         except ValueError:
             sender.setText('0')  # 0 if it's not a valid number
-            self.statusBar.showMessage('Waduhek :/', 3000)
             
     def updateInfoBox(self, a= None, b = None, c = None, A= None, B = None, C = None):
         '''
@@ -388,19 +407,12 @@ class TrigMainWindow(QMainWindow):
         It is based on the laws obtained from the Triangle object.
         '''
         for i in reversed(range(self.infoLayout.count())): # clear all the previous procedures
-            self.infoLayout.itemAt(i).widget().setParent(None)    
-                
-        if self.radioBtnSineCosine.isChecked(): 
-            laws = self.triangle.lawsUsed[0] # first element of the lawsUsed list contains the procedures for sine/cosine law         
-            label = QLabel(laws, self)
-            label.setFont(self.font)
-            self.infoLayout.addWidget(label)
-                
-        elif self.radioBtnSohCahToa.isChecked():
-            laws = self.triangle.lawsUsed[1] # second element of the lawsUsed list contains the procedures for SOH/CAH/TOA           
-            label = QLabel(laws, self)
-            label.setFont(QFont('Sans Serif', 9)) # smaller font for SOH/CAH/TOA since it's too long to fit in the box
-            self.infoLayout.addWidget(label)             
+            self.infoLayout.itemAt(i).widget().setParent(None)   
+
+        jointLaws = '<br>'.join(self.triangle.lawsUsed) 
+        label = QLabel(jointLaws, self)
+        label.setFont(self.font)
+        self.infoLayout.addWidget(label)                   
             
     def resetInput(self):
         '''
@@ -411,5 +423,5 @@ class TrigMainWindow(QMainWindow):
         for angleIB in self.angleIBs:
             angleIB.setText('0.00')            
        
-        if self.radioBtnSohCahToa.isChecked():
+        if self.radioBtnSOH.isChecked() or self.radioBtnCAH.isChecked() or self.radioBtnTOA.isChecked():
             self.angleIBs[0].setText('90.00') # make sure A is 90 degrees in SOH/CAH/TOA

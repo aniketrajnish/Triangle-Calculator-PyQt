@@ -1,12 +1,43 @@
 import math
+from enum import Enum
+
+class TrigLaw(Enum):
+    '''
+    Enum class for the trigonometry laws.
+    '''
+    SOH = 'SOH'
+    CAH = 'CAH'
+    TOA = 'TOA'
+    SINE_LAW = 'Sine Law'
+    COSINE_LAW = 'Cosine Law'
 
 class Trigonometry:
     '''
     Class having helper functions to solve trigonometry problems.
     This includes the following:
+    - Triangle Sum Theorem
     - SOHCAHTOA
     - Sine Rule and Cosine Rule    
     '''
+    @staticmethod
+    def pythagorasTheorem(o = None, a = None, h = None):
+        '''
+        Solves for the missing side of a right angled triangle using pythagoras theorem.
+        '''
+        if o is None:
+            return math.sqrt(h ** 2 - a ** 2)
+        elif a is None:
+            return math.sqrt(h ** 2 - o ** 2)
+        elif h is None:
+            return math.sqrt(o ** 2 + a ** 2)
+
+    @staticmethod
+    def triangleSumTheorem(A,B):
+        '''
+        Solves for the third angle of a triangle using the triangle sum theorem.
+        '''
+        return math.pi - (A + B)
+    
     @staticmethod
     def soh(o = None, h = None, theta = None):
         '''
@@ -19,7 +50,7 @@ class Trigonometry:
            elif h is not None:
                return h * math.sin(theta)
         elif o is not None and h is not None:
-            return o/h
+            return math.asin(o/h)
         else:
             raise ValueError('Insufficient info')
     

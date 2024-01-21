@@ -197,11 +197,13 @@ class TrigMainWindow(QMainWindow):
             self.statusBar.showMessage(self.triangle.errorMessage, 3000)
             return 
         
-        triangle.vertices = triangle.calculateVertices()
+        triangle.vertices = triangle.calculateVertices() # scale up the vertices to make them visible on the screen
+        scaleVertex = round(min(self.w // 1.5, self.h // 1.5)) / max(triangle.a, triangle.b, triangle.c) # scale factor to scale the vertices
+        triangle.vertices = [vertex * scaleVertex for vertex in triangle.vertices] # scale the vertices
         polygon = QPolygonF(triangle.vertices)
         triangleItem = QGraphicsPolygonItem(polygon)
 
-        self.scaleFactor = min(triangle.a, triangle.b, triangle.c) # used to scale components of the triangle to look good on the screen  
+        self.scaleFactor = min(triangle.a, triangle.b, triangle.c) * scaleVertex # used to scale components of the triangle to look good on the screen  
 
         if not self.triangleView.scene():
             self.triangleView.setScene(QGraphicsScene())
